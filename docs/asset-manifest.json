@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/bible-quiz/static/js/main.84ca362f.js",
+    "main.js": "/bible-quiz/static/js/main.46af367d.js",
     "index.html": "/bible-quiz/index.html",
-    "main.84ca362f.js.map": "/bible-quiz/static/js/main.84ca362f.js.map"
+    "main.46af367d.js.map": "/bible-quiz/static/js/main.46af367d.js.map"
   },
   "entrypoints": [
-    "static/js/main.84ca362f.js"
+    "static/js/main.46af367d.js"
   ]
 }

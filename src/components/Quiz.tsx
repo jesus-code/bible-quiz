@@ -28,7 +28,6 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
   const [timer, setTimer] = useState(20);
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
-  const [sessionEnded, setSessionEnded] = useState(false);
   const [sessionStats, setSessionStats] = useState<SessionStats>({
     date: new Date().toISOString(),
     correctAnswers: 0,
@@ -97,7 +96,6 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
     } else {
       setStreak(0);
     }
-    console.log('Session Stats:', sessionStats);
   };
 
   // Inside the Quiz component
@@ -137,7 +135,6 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
     };
     onUserUpdate(updatedUser);
     setShowAnswer(false);
-    setSessionEnded(true);
     onSessionEnd();
   };
 
