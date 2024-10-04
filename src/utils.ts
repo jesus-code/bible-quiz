@@ -6,7 +6,7 @@ import { Question } from './types';
 
 export const loadQuestions = async (): Promise<Question[]> => {
   console.log(`${process.env.PUBLIC_URL}/docs/questions.csv`);
-  const response = await fetch(`${process.env.PUBLIC_URL}/docs/questions.csv`);
+  const response = await fetch(`${process.env.PUBLIC_URL}/questions.csv`);
   const csvData = await response.text();
   console.log('CSV Data:', csvData);
 
