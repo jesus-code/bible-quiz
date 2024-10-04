@@ -12,9 +12,7 @@ import {
   ListItemText,
   Typography,
   Paper,
-  Grid,
   Divider,
-  Avatar,
 } from '@mui/material';
 
 interface Props {

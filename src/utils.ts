@@ -5,8 +5,10 @@ import { ParseResult } from 'papaparse';
 import { Question } from './types';
 
 export const loadQuestions = async (): Promise<Question[]> => {
-  const response = await fetch(`${process.env.PUBLIC_URL}/questions.csv`);
+  console.log(`${process.env.PUBLIC_URL}/questions.csv`);
+  const response = await fetch('/questions.csv');
   const csvData = await response.text();
+  console.log('CSV Data:', csvData);
 
   return new Promise((resolve, reject) => {
     Papa.parse<Question>(csvData, {
