@@ -5,7 +5,6 @@ import { ParseResult } from 'papaparse';
 import { Question } from './types';
 
 export const loadQuestions = async (): Promise<Question[]> => {
-  console.log(`${process.env.PUBLIC_URL}/questions.csv`);
   const response = await fetch('/questions.csv');
   const csvData = await response.text();
   console.log('CSV Data:', csvData);
@@ -18,12 +17,12 @@ export const loadQuestions = async (): Promise<Question[]> => {
       skipEmptyLines: true,
       complete: (results: ParseResult<Question>) => {
         console.log('Parsed Questions:', results.data);
-        if (results.errors.length) {
-          console.error('Parsing errors:', results.errors);
-          reject(results.errors);
-        } else {
+        // if (results.errors.length) {
+        //   console.error('Parsing errors:', results.errors);
+        //   reject(results.errors);
+        // } else {
           resolve(results.data as Question[]);
-        }
+        // }
       },
     });
   });
