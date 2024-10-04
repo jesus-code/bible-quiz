@@ -23,9 +23,9 @@
   },
   "scripts": {
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
+    "deploy": "react-scripts build && mv build docs",
     "start": "react-scripts start",
-    "build": "react-scripts build && mv build docs",
+    "build": "react-scripts build && rm -rf docs && mv build docs",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -49,7 +49,6 @@
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",
-    "@types/papaparse": "^5.3.14",
-    "gh-pages": "^6.1.1"
+    "@types/papaparse": "^5.3.14"
   }
 }
