@@ -315,7 +315,7 @@ export const Quiz: React.FC<Props> = ({ user, questions, verses, onUserUpdate, o
                       <Box
                         sx={{
                           position: 'fixed',
-                          bottom: 32,
+                          bottom: 58,
                           right: 16,
                         }}
                       >
@@ -333,7 +333,7 @@ export const Quiz: React.FC<Props> = ({ user, questions, verses, onUserUpdate, o
                         <Box
                           sx={{
                             position: 'fixed',
-                            bottom: 32,
+                            bottom: 58,
                             right: 16,
                             display: 'flex',
                             flexDirection: 'column',
