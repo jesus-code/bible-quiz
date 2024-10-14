@@ -6,6 +6,12 @@ export interface Question {
   answer: string;
 }
 
+export interface Verse {
+  chapter: string;
+  verse: string;
+  content: string;
+}
+
 export interface UserProfile {
   name: string;
   knownChapters: string[];

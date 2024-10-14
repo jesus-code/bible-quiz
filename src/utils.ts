@@ -2,13 +2,11 @@
 
 import Papa from 'papaparse';
 import { ParseResult } from 'papaparse';
-import { Question } from './types';
+import { Question, Verse } from './types';
 
 export const loadQuestions = async (): Promise<Question[]> => {
-  console.log(`${process.env.PUBLIC_URL}/docs/questions.csv`);
   const response = await fetch(`${process.env.PUBLIC_URL}/questions.csv`);
   const csvData = await response.text();
-  console.log('CSV Data:', csvData);
 
   return new Promise((resolve, reject) => {
     Papa.parse<Question>(csvData, {
@@ -17,19 +15,27 @@ export const loadQuestions = async (): Promise<Question[]> => {
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: (results: ParseResult<Question>) => {
-        console.log('Parsed Questions:', results.data);
-        // if (results.errors.length) {
-        //   console.error('Parsing errors:', results.errors);
-        //   reject(results.errors);
-        // } else {
-          resolve(results.data as Question[]);
-        // }
+        resolve(results.data as Question[]);
       },
     });
   });
 };
 
-
+export const loadVerses = (): Promise<Verse[]> => {
+  return new Promise((resolve, reject) => {
+    Papa.parse(`${process.env.PUBLIC_URL}/verses.csv`, {
+      download: true,
+      header: true,
+      complete: (results) => {
+        const verses = results.data as Verse[];
+        resolve(verses);
+      },
+      error: (error) => {
+        reject(error);
+      },
+    });
+  });
+};
 
 export const saveToLocalStorage = (key: string, data: any) => {
   localStorage.setItem(key, JSON.stringify(data));

@@ -1,7 +1,7 @@
 // src/components/Quiz.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { Question, UserProfile, SessionStats } from '../types';
+import { Question, UserProfile, SessionStats, Verse } from '../types';
 import {
   Button,
   Typography,
@@ -12,16 +12,22 @@ import {
   Grid,
   LinearProgress,
 } from '@mui/material';
+import { Fab } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 interface Props {
   user: UserProfile;
   questions: Question[];
+  verses: Verse[];
   onUserUpdate: (user: UserProfile) => void;
   onLogout: () => void;
   onSessionEnd: () => void; // New prop
 }
 
-export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout, onSessionEnd }) => {
+export const Quiz: React.FC<Props> = ({ user, questions, verses, onUserUpdate, onLogout, onSessionEnd }) => {
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -34,6 +40,8 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
     totalQuestions: 0,
     longestStreak: 0,
   });
+
+  const answerLogged = useRef<boolean>(false);
 
   useEffect(() => {
     const filtered = questions.filter(
@@ -58,7 +66,20 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
     setIntervalId(id);
   };
 
+  // Function to get the verse text
+  const getVerseText = (chapter: string, verse: string): string | null => {
+    const chapterNum = Number(chapter);
+    const verseNum = Number(verse);
+
+    const foundVerse = verses.find(
+      (v) => Number(v.chapter) === chapterNum && Number(v.verse) === verseNum
+    );
+    return foundVerse ? chapter + ":" + verse + " " + foundVerse.content : null;
+  };
+
+
   const nextQuestion = () => {
+    answerLogged.current = false;
     if (filteredQuestions.length === 0) {
       // No questions available
       return;
@@ -69,7 +90,6 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
     setCurrentQuestion(filteredQuestions[randomIndex]);
     startTimer();
   };
-
 
   const handleAnswer = (correct: boolean) => {
     if (intervalId) clearInterval(intervalId);
@@ -85,17 +105,20 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
       correctAnswers: correct ? prev.correctAnswers + 1 : prev.correctAnswers,
     }));
 
-    if (correct) {
-      setStreak(streak + 1);
-      if (streak + 1 > sessionStats.longestStreak) {
-        setSessionStats((prev) => ({
-          ...prev,
-          longestStreak: streak + 1,
-        }));
+    if (!answerLogged.current) {
+      if (correct) {
+        setStreak(streak + 1);
+        if (streak + 1 > sessionStats.longestStreak) {
+          setSessionStats((prev) => ({
+            ...prev,
+            longestStreak: streak + 1,
+          }));
+        }
+      } else {
+        setStreak(0);
       }
-    } else {
-      setStreak(0);
     }
+    answerLogged.current = true;
   };
 
   // Inside the Quiz component
@@ -152,43 +175,55 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
 
   if (!currentQuestion) {
     return (
-      <Card
+      <Box
         sx={{
-          minWidth: 275,
-          boxShadow: 3,
-          borderRadius: 2,
+          width: '100%',
           display: 'flex',
-          flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'center',
+          p: 2, // Add horizontal padding to the parent container
         }}
       >
-        <CardContent
+        <Card
           sx={{
+            width: '100%',
+            maxWidth: 400, // Set a maximum width for the Card
+            boxShadow: 3,
+            borderRadius: 2,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            gap: 2,
             alignItems: 'center',
-            width: '100%',
+            mx: 'auto', // Center the Card horizontally
           }}
         >
-          <Typography variant="h5">Ready to start?</Typography>
-          <Button variant="contained" onClick={nextQuestion}>
-            Start
-          </Button>
-        </CardContent>
-      </Card>
+          <CardContent
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: 2,
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Typography variant="h5" align="center">
+              Ready to start?
+            </Typography>
+            <Button variant="contained" onClick={nextQuestion}>
+              Start
+            </Button>
+          </CardContent>
+        </Card>
+      </Box>
+    
     );
-  } 
-  
+  }
+
 
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: 'background.paper',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -196,7 +231,7 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
       {/* Header */}
       <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
         <Typography variant="h4" align="center">
-          Bible Quiz
+          Quizzible
         </Typography>
       </Box>
 
@@ -214,7 +249,7 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
               sx={{ width: 200, mt: 1 }}
             />
             <Typography variant="body2" color="text.secondary">
-              {streak > 0 ? `Current Streak: ${streak}` : ''}
+              {streak > 0 ? `Current Streak: ${streak}` : ' '}
             </Typography>
           </Grid>
 
@@ -257,44 +292,84 @@ export const Quiz: React.FC<Props> = ({ user, questions, onUserUpdate, onLogout,
                       {"Luke " + currentQuestion.chapter + ":" + currentQuestion.verse + " " + currentQuestion.question + "?"}
                     </Typography>
                     {showAnswer && (
-                      <Typography variant="body1" color="text.secondary">
-                        Answer: {currentQuestion.answer}
-                      </Typography>
+                      <Box sx={{ mt: 4 }}>
+                        <Typography variant="h5" gutterBottom>
+                          Correct Answer: {currentQuestion.answer}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mt: 2 }}>
+                          {getVerseText(currentQuestion.chapter, currentQuestion.verse) || 'Verse text not found.'}
+                        </Typography>
+                      </Box>
+
                     )}
                   </CardContent>
                   <CardActions
-                    sx={{ justifyContent: 'center', flexWrap: 'wrap', gap: 1 }}
+                    sx={{
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      position: 'relative',
+                    }}
                   >
                     {!showAnswer ? (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => setShowAnswer(true)}
+                      // Show Answer FAB anchored to the bottom-right
+                      <Box
+                        sx={{
+                          position: 'fixed',
+                          bottom: 32,
+                          right: 16,
+                        }}
                       >
-                        Show Answer
-                      </Button>
+                        <Fab
+                          color="primary"
+                          aria-label="Show Answer"
+                          onClick={() => setShowAnswer(true)}
+                        >
+                          <VisibilityIcon />
+                        </Fab>
+                      </Box>
                     ) : (
                       <>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          onClick={() => handleAnswer(true)}
+                        {/* Floating Action Buttons */}
+                        <Box
+                          sx={{
+                            position: 'fixed',
+                            bottom: 32,
+                            right: 16,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 5,
+                          }}
                         >
-                          I Got It Right
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          onClick={() => handleAnswer(false)}
-                        >
-                          I Got It Wrong
-                        </Button>
-                        <Button variant="outlined" onClick={nextQuestion}>
-                          Next Question
-                        </Button>
+                          <Fab
+                            color="primary"
+                            aria-label="Next Question"
+                            onClick={nextQuestion}
+                          >
+                            <ArrowForwardIcon />
+                          </Fab>
+                          <Fab
+                            color="error"
+                            aria-label="I Got It Wrong"
+                            onClick={() => handleAnswer(false)}
+                          >
+                            <CloseIcon />
+                          </Fab>
+                          <Fab
+                            color="success"
+                            aria-label="I Got It Right"
+                            onClick={() => handleAnswer(true)}
+                          >
+                            <CheckIcon />
+                          </Fab>
+                        </Box>
+
+                        {/* Secondary Button */}
                         <Button
                           variant="outlined"
                           color="secondary"
+                          size="large"
+                          fullWidth
+                          sx={{ mt: 2 }}
                           onClick={endSession}
                         >
                           End Session

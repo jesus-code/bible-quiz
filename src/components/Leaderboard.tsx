@@ -64,7 +64,6 @@ export const Leaderboard: React.FC<Props> = ({ user, onRestart }) => {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: 'background.paper',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -73,12 +72,11 @@ export const Leaderboard: React.FC<Props> = ({ user, onRestart }) => {
       <Box
         sx={{
           p: 2,
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
+          color: 'primary.main',
         }}
       >
         <Typography variant="h4" align="center">
-          Session Leaderboard
+          Leaderboard
         </Typography>
       </Box>
 

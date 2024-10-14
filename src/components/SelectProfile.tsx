@@ -1,5 +1,3 @@
-// src/components/SelectProfile.tsx
-// src/components/ProfileSelection.tsx
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import {
@@ -46,22 +44,24 @@ export const SelectProfile: React.FC<Props> = ({
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: 'background.paper',
         display: 'flex',
+        backgroundColor: 'background.default',
         flexDirection: 'column',
         alignItems: 'center',
         py: 4,
       }}
     >
       {/* Header */}
+      <img src={process.env.PUBLIC_URL + '/logo192.png'} alt="Quizzible Logo" />
       <Typography variant="h4" align="center" gutterBottom>
-        Welcome to Bible Quiz
+        Welcome to Quizzible
       </Typography>
       <Typography variant="subtitle1" align="center" color="text.secondary">
         Please select your profile or create a new one to get started.
       </Typography>
 
       {/* Profile List */}
+      {userProfiles.length > 0 && (
       <Paper
         elevation={3}
         sx={{
@@ -83,7 +83,7 @@ export const SelectProfile: React.FC<Props> = ({
             </React.Fragment>
           ))}
         </List>
-      </Paper>
+      </Paper>)}
 
       {/* Create New Profile */}
       <Paper

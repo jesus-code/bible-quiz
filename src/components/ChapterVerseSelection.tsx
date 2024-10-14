@@ -133,11 +133,11 @@ export const ChapterVerseSelection: React.FC<Props> = ({
         <Box
             sx={{
                 minHeight: '100vh',
-                bgcolor: 'background.paper',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 py: 4,
+                px: 4, 
             }}
         >
             <Typography variant="h4" align="center" gutterBottom>
