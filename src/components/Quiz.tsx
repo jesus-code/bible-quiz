@@ -338,6 +338,7 @@ export const Quiz: React.FC<Props> = ({ user, questions, verses, onUserUpdate, o
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 5,
+                            zIndex: 1300, 
                           }}
                         >
                           <Fab
