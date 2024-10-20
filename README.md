@@ -110,8 +110,7 @@ Before setting up the project, ensure you have the following installed on your s
    * Open GitHub Desktop.  
    * Go to **File \> Clone Repository**.  
    * In the **URL** tab, enter the repository URL:  
-    ``` https://github.com/your-username/quizzible.git  ```
-   * Replace `your-username` with your GitHub username.  
+    ``` https://github.com/jesus-code/bible-quiz.git  ```
    * Choose a local path where you want to clone the repository.  
    * Click **Clone**.
 
@@ -216,7 +215,7 @@ Quizzible is deployed using GitHub Pages. The deployment process involves buildi
    * Click **Commit to main**.  
    * Click **Push origin** to push your changes to the remote repository.  
 3. **Verify Deployment**  
-   * Visit `https://your-username.github.io/quizzible` to see the live app.  
+   * Visit `https://jesus-code.github.io/bible-quiz/` to see the live app.  
    * Ensure that all features are working as expected.
 
 ---
@@ -251,7 +250,7 @@ Quizzible is released under the MIT License.
 
 **Note**:
 
-* Replace placeholders like `your-username` and `your-feature-name` with your actual GitHub username and feature names when following the instructions.  
+* Replace placeholders like `your-feature-name` with your actual GitHub username and feature names when following the instructions.  
 * If you're new to Git and GitHub, you can find additional resources and tutorials on the [GitHub Guides](https://guides.github.com/) website.
 
 ---
