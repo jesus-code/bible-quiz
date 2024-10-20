@@ -4,24 +4,27 @@ Quizzible is a Bible Quizzing app designed to help users study and practice Bibl
 
 ## **Table of Contents**
 
-* Architecture  
-  * Overview  
-  * Technologies Used  
-  * Project Structure  
-* Installation  
-  * Prerequisites  
-  * Installing Node.js and npm  
-  * Cloning the Repository  
-* Development Workflow  
-  * Getting Started  
-  * Creating a New Branch with GitHub Desktop  
-  * Making Changes  
-  * Submitting a Pull Request with GitHub Desktop  
-* Deployment  
-  * Building the App  
-  * Deploying to GitHub Pages  
-* Contributing  
-* License
+## Table of Contents
+
+* [Architecture](#architecture)
+    * [Overview](#overview)
+    * [Technologies Used](#technologies-used)
+    * [Project Structure](#project-structure)
+* [Installation](#installation)
+    * [Prerequisites](#prerequisites)
+    * [Installing Node.js and npm](#installing-nodejs-and-npm)
+    * [Cloning the Repository](#cloning-the-repository)
+* [Development Workflow](#development-workflow)
+    * [Getting Started](#getting-started)
+    * [Creating a New Branch with GitHub Desktop](#creating-a-new-branch-with-github-desktop)
+    * [Making Changes](#making-changes)
+    * [Submitting a Pull Request with GitHub Desktop](#submitting-a-pull-request-with-github-desktop)
+* [Deployment](#deployment)
+    * [Building the App](#building-the-app)
+    * [Deploying to GitHub Pages](#deploying-to-github-pages)
+* [Contributing](#contributing)
+* [License](#license)
+
 
 ---
 
@@ -45,28 +48,28 @@ The project's file and folder structure is organized as follows:
 
    ```
 
-`├── public/                   # Public assets and HTML file`  
-`├── src/                      # Source code`  
-`│   ├── components/           # Reusable React components`  
-`│   │   ├── SelectProfile.tsx`  
-`│   │   ├── ChapterVerseSelection.tsx`  
-`│   │   ├── Quiz.tsx`  
-`│   │   ├── Leaderboard.tsx`  
-`│   │   └── ...               # Other components`  
-`│   ├── types/                # TypeScript type definitions`  
-`│   │   └── index.ts          # Shared type definitions`  
-`│   ├── utils/                # Utility functions`  
-`│   │   ├── index.ts          # Utility functions`  
-`│   │   └── ...               # Other utility files`  
-`│   ├── App.tsx               # Main app component`  
-`│   ├── index.tsx             # Entry point for React`  
-`│   ├── theme.ts              # Material-UI theme customization`  
-`│   └── ...                   # Other files`  
-`├── docs/                     # Deployment directory for GitHub Pages`  
-`├── package.json              # Project dependencies and scripts`  
-`├── tsconfig.json             # TypeScript configuration`  
-`├── webpack.config.js         # Webpack configuration`  
-`└── README.md                 # Project documentation`
+├── public/                   # Public assets and HTML file  
+├── src/                      # Source code  
+│   ├── components/           # Reusable React components  
+│   │   ├── SelectProfile.tsx  
+│   │   ├── ChapterVerseSelection.tsx  
+│   │   ├── Quiz.tsx  
+│   │   ├── Leaderboard.tsx  
+│   │   └── ...               # Other components  
+│   ├── types/                # TypeScript type definitions  
+│   │   └── index.ts          # Shared type definitions  
+│   ├── utils/                # Utility functions  
+│   │   ├── index.ts          # Utility functions  
+│   │   └── ...               # Other utility files  
+│   ├── App.tsx               # Main app component  
+│   ├── index.tsx             # Entry point for React  
+│   ├── theme.ts              # Material-UI theme customization 
+│   └── ...                   # Other files  
+├── docs/                     # Deployment directory for GitHub Pages  
+├── package.json              # Project dependencies and scripts  
+├── tsconfig.json             # TypeScript configuration  
+├── webpack.config.js         # Webpack configuration  
+└── README.md                 # Project documentation
 
    ```
 ---
@@ -92,8 +95,8 @@ Before setting up the project, ensure you have the following installed on your s
    * Check the installed versions:  
 
    ```
-   `node -v`  
-   `npm -v`
+   node -v
+   npm -v
    ```
 
    * You should see the installed versions of Node.js and npm.
@@ -107,7 +110,7 @@ Before setting up the project, ensure you have the following installed on your s
    * Open GitHub Desktop.  
    * Go to **File \> Clone Repository**.  
    * In the **URL** tab, enter the repository URL:  
-     `https://github.com/your-username/quizzible.git`  
+    ``` https://github.com/your-username/quizzible.git  ```
    * Replace `your-username` with your GitHub username.  
    * Choose a local path where you want to clone the repository.  
    * Click **Clone**.
@@ -125,12 +128,12 @@ Before setting up the project, ensure you have the following installed on your s
    * Open a terminal or command prompt in the project directory.  
    * Run the following command to install the project dependencies:  
    ```
-     `npm install`  
+     npm install  
    ```
 3. **Start the Development Server**  
    * Run the app locally by executing:  
    ```
-     `npm start`  
+     npm start  
    ```
    * The app should now be running at `http://localhost:3000`.
 
@@ -191,7 +194,7 @@ Quizzible is deployed using GitHub Pages. The deployment process involves buildi
    * Open a terminal or command prompt in the project directory.  
    * Run the following command to generate the production build:  
    ```
-     `npm run build`  
+     npm run build  
    ```
    * This command generates optimized production files in the `build` directory.
 
@@ -200,7 +203,7 @@ Quizzible is deployed using GitHub Pages. The deployment process involves buildi
 1. **Run the Deploy Script**  
    * Run the deploy script by executing:  
    ```
-     `npm run deploy`  
+     npm run deploy  
    ```
    * The `deploy` script should be configured in `package.json` to:  
      * Build the app.  
