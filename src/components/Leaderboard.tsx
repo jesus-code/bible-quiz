@@ -48,7 +48,7 @@ export const Leaderboard: React.FC<Props> = ({ user, onRestart }) => {
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);  
+    const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -141,9 +141,7 @@ export const Leaderboard: React.FC<Props> = ({ user, onRestart }) => {
                             : 'inherit',
                         }}
                       >
-                        <TableCell>
-                          {session.value.toFixed(2)}%
-                        </TableCell>
+                        <TableCell>{session.value.toFixed(2)}%</TableCell>
                         <TableCell>{formatDate(session.date)}</TableCell>
                       </TableRow>
                     ))}

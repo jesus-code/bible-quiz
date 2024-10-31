@@ -30,10 +30,10 @@ export const ChapterVerseSelection: React.FC<Props> = ({
     onComplete,
 }) => {
     const [selectedChapters, setSelectedChapters] = useState<
-        { chapter: string; highestVerse: string }[]
+        { chapter: number; highestVerse: number }[]
     >([]);
 
-    const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+    const [availableChapters, setAvailableChapters] = useState<number[]>([]);
 
     useEffect(() => {
         // Extract all unique chapters
@@ -57,7 +57,7 @@ export const ChapterVerseSelection: React.FC<Props> = ({
                         (q) => q.chapter === chapter && q.verse === verse
                     )
                 )
-                .sort((a, b) => parseInt(b) - parseInt(a))[0];
+                .sort((a, b) => b - a)[0];
 
             return {
                 chapter,
@@ -69,25 +69,25 @@ export const ChapterVerseSelection: React.FC<Props> = ({
     }, [questions, user]);
 
     const handleAddChapter = () => {
-        setSelectedChapters([...selectedChapters, { chapter: '', highestVerse: '' }]);
+        setSelectedChapters([...selectedChapters, { chapter: 0, highestVerse: 0 }]);
     };
 
-    const handleChapterChange = (index: number, chapter: string) => {
+    const handleChapterChange = (index: number, chapter: number) => {
         const updatedSelections = [...selectedChapters];
         updatedSelections[index].chapter = chapter;
-        updatedSelections[index].highestVerse = '';
+        updatedSelections[index].highestVerse = 0;
 
         // Remove any other entries with the same chapter to prevent duplicates
         const uniqueSelections = updatedSelections.filter(
             (selection, idx) =>
-                selection.chapter !== '' &&
+                selection.chapter !== 0 &&
                 updatedSelections.findIndex((s) => s.chapter === selection.chapter) === idx
         );
 
         setSelectedChapters(uniqueSelections);
     };
 
-    const handleHighestVerseChange = (index: number, highestVerse: string) => {
+    const handleHighestVerseChange = (index: number, highestVerse: number) => {
         const updatedSelections = [...selectedChapters];
         updatedSelections[index].highestVerse = highestVerse;
         setSelectedChapters(updatedSelections);
@@ -101,14 +101,14 @@ export const ChapterVerseSelection: React.FC<Props> = ({
 
     const saveSelections = () => {
         const knownChapters = selectedChapters.map((selection) => selection.chapter);
-        const knownVerses: string[] = [];
+        const knownVerses: number[] = [];
 
         // For each selected chapter, add all verses up to the highest known verse
         selectedChapters.forEach((selection) => {
             const versesInChapter = questions
                 .filter((q) => q.chapter === selection.chapter)
                 .map((q) => q.verse)
-                .sort((a, b) => parseInt(a) - parseInt(b));
+                .sort((a, b) => a - b);
 
             const highestVerseIndex = versesInChapter.findIndex(
                 (v) => v === selection.highestVerse
@@ -174,7 +174,7 @@ export const ChapterVerseSelection: React.FC<Props> = ({
                                         label="Chapter"
                                         value={selection.chapter}
                                         onChange={(e) =>
-                                            handleChapterChange(index, e.target.value as string)
+                                            handleChapterChange(index, e.target.value as number)
                                         }
                                     >
                                         {availableChapters
@@ -201,7 +201,7 @@ export const ChapterVerseSelection: React.FC<Props> = ({
                                         label="Highest Verse Known"
                                         value={selection.highestVerse}
                                         onChange={(e) =>
-                                            handleHighestVerseChange(index, e.target.value as string)
+                                            handleHighestVerseChange(index, e.target.value as number)
                                         }
                                     >
                                         {selection.chapter &&
@@ -212,7 +212,7 @@ export const ChapterVerseSelection: React.FC<Props> = ({
                                                         .map((q) => q.verse)
                                                 )
                                             )
-                                                .sort((a, b) => parseInt(a) - parseInt(b))
+                                                .sort((a, b) => a - b)
                                                 .map((verse) => (
                                                     <MenuItem value={verse} key={verse}>
                                                         Verse {verse}

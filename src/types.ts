@@ -1,21 +1,22 @@
 // src/types.ts
 export interface Question {
-  chapter: string;
-  verse: string;
+  verse: number;
+  chapter: number;
+  id: string;
   question: string;
   answer: string;
 }
 
 export interface Verse {
-  chapter: string;
-  verse: string;
+  verse: number;
+  chapter: number;
   content: string;
 }
 
 export interface UserProfile {
+  knownVerses: number[];
   name: string;
-  knownChapters: string[];
-  knownVerses: string[];
+  knownChapters: number[];
   stats: SessionStats[];
 }
 

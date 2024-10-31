@@ -15,7 +15,13 @@ export const loadQuestions = async (): Promise<Question[]> => {
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: (results: ParseResult<Question>) => {
-        resolve(results.data as Question[]);
+        const questions = results.data as Question[];
+  
+        // Assign an incremental ID to each question
+        questions.forEach((question, index) => {
+          question.id = `q_${index + 1}`; 
+        });
+        resolve(questions);
       },
     });
   });
