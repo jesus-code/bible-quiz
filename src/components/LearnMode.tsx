@@ -11,7 +11,9 @@ import {
   Fab,
   Button,
   Select,
+  Menu,
   MenuItem,
+  Badge,
   FormControl,
   InputLabel,
   Divider,
@@ -19,7 +21,11 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import ListIcon from '@mui/icons-material/List';
+import LoopIcon from '@mui/icons-material/Loop';
+import SpeedIcon from '@mui/icons-material/Speed';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import { Question, Verse } from '../types';
 
 interface Props {
@@ -29,18 +35,95 @@ interface Props {
 }
 
 export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
+  
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [currentVerseIndex, setCurrentVerseIndex] = useState(0);
+  const [verseNumberUtterance, setVerseNumberUtterance] = useState<SpeechSynthesisUtterance | null>(null);
+  const [verseContentUtterance, setVerseContentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
+
+
   const [showVerseList, setShowVerseList] = useState(false);
 
-  // Bubble states
-  const [bubbleVisible, setBubbleVisible] = useState(false);
-  const [bubblePosition, setBubblePosition] = useState<{ left: string; top: string }>({
-    left: '0%',
-    top: '0%',
+  // Reading states
+  const [isReading, setIsReading] = useState(false);
+  const [speechRate, setSpeechRate] = useState<number>(() => {
+    // Load speech rate from localStorage or default to 1.0
+    const savedRate = localStorage.getItem('speechRate');
+    return savedRate ? parseFloat(savedRate) : 1.0;
   });
-  const [bubbleColor, setBubbleColor] = useState('red');
-  const [bubbleTransition, setBubbleTransition] = useState('');
+  const [repeatCount, setRepeatCount] = useState(1);
+  const [remainingRepeats, setRemainingRepeats] = useState(0);
+
+  // Refs for speech synthesis
+  const speechSynthesisRef = useRef(window.speechSynthesis);
+
+  // Voices
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+
+  // Cancellation flag
+  const speechCanceledRef = useRef(false);
+
+  // Menu for speed control
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  // Menu for voice selection
+  const [voiceAnchorEl, setVoiceAnchorEl] = useState<null | HTMLElement>(null);
+  const voiceMenuOpen = Boolean(voiceAnchorEl);
+
+  const verseListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (verseNumberUtterance) {
+      verseNumberUtterance.rate = speechRate;
+      verseNumberUtterance.voice = selectedVoice;
+    }
+    if (verseContentUtterance) {
+      verseContentUtterance.rate = speechRate;
+      verseContentUtterance.voice = selectedVoice;
+    }
+  }, [speechRate, selectedVoice, verseNumberUtterance, verseContentUtterance]);
+  
+
+  // Fetch voices and load selected voice from localStorage
+  useEffect(() => {
+    const populateVoices = () => {
+      const availableVoices = speechSynthesisRef.current.getVoices();
+      const englishVoices = availableVoices.filter((voice) => voice.lang.startsWith('en'));
+      setVoices(englishVoices);
+
+      // Load selected voice from localStorage
+      const savedVoiceURI = localStorage.getItem('selectedVoiceURI');
+      const savedVoice = englishVoices.find((voice) => voice.voiceURI === savedVoiceURI);
+
+      if (savedVoice) {
+        setSelectedVoice(savedVoice);
+      } else if (englishVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(englishVoices[0]);
+      }
+    };
+
+    populateVoices();
+
+    speechSynthesisRef.current.addEventListener('voiceschanged', populateVoices);
+
+    return () => {
+      speechSynthesisRef.current.removeEventListener('voiceschanged', populateVoices);
+    };
+  }, []);
+
+  // Save selected voice to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedVoice) {
+      localStorage.setItem('selectedVoiceURI', selectedVoice.voiceURI);
+    }
+  }, [selectedVoice]);
+
+  // Save speech rate to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('speechRate', speechRate.toString());
+  }, [speechRate]);
 
   const handleSelectChapter = (chapter: number) => {
     setSelectedChapter(chapter);
@@ -49,22 +132,43 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
 
   const handlePreviousVerse = () => {
     if (currentVerseIndex > 0) {
-      setCurrentVerseIndex(currentVerseIndex - 1);
+      const newIndex = currentVerseIndex - 1;
+      setCurrentVerseIndex(newIndex);
+
+      if (isReading) {
+        speechCanceledRef.current = true;
+        speechSynthesisRef.current.cancel();
+        speechCanceledRef.current = false;
+        readChapter(newIndex);
+      }
     }
   };
 
   const handleNextVerse = () => {
     if (currentVerseIndex < chapterVerses.length - 1) {
-      setCurrentVerseIndex(currentVerseIndex + 1);
+      const newIndex = currentVerseIndex + 1;
+      setCurrentVerseIndex(newIndex);
+
+      if (isReading) {
+        speechCanceledRef.current = true;
+        speechSynthesisRef.current.cancel();
+        speechCanceledRef.current = false;
+        readChapter(newIndex);
+      }
     }
   };
 
   const handleVerseClick = (index: number) => {
     setCurrentVerseIndex(index);
-    setShowVerseList(false); // Hide the verse list after selecting a verse
-  };
+    setShowVerseList(false);
 
-  const verseListRef = useRef<HTMLDivElement>(null);
+    if (isReading) {
+      speechCanceledRef.current = true;
+      speechSynthesisRef.current.cancel();
+      speechCanceledRef.current = false;
+      readChapter(index);
+    }
+  };
 
   useEffect(() => {
     if (verseListRef.current) {
@@ -76,9 +180,9 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
   }, [currentVerseIndex]);
 
   // Get available chapters
-  const availableChapters = Array.from(
-    new Set<number>(verses.map((v) => v.chapter))
-  ).sort((a, b) => a - b); // Numerical sort
+  const availableChapters = Array.from(new Set<number>(verses.map((v) => v.chapter))).sort(
+    (a, b) => a - b
+  );
 
   // Filter verses for the selected chapter
   const chapterVerses =
@@ -96,73 +200,131 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
       )
     : [];
 
-  // Bubble Animation on Verse Change
-  useEffect(() => {
-    // Delay of 0.5 seconds before starting the animation
-    const timer = setTimeout(() => {
-      // Randomize bubble color
-      const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink'];
-      const newColor = colors[Math.floor(Math.random() * colors.length)];
-      setBubbleColor(newColor);
+  // Handle speed menu
+  const handleSpeedClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-      // Randomize starting side: left or right
-      const fromLeft = Math.random() > 0.5;
+  const handleSpeedClose = () => {
+    setAnchorEl(null);
+  };
 
-      // Set starting and ending positions
-      const startPosition = fromLeft
-        ? { left: '-10%', top: '50%' }
-        : { left: '110%', top: '50%' };
-      const endPosition = fromLeft
-        ? { left: '90%', top: '50%' }
-        : { left: '10%', top: '50%' };
+  const handleSpeedChange = (rate: number) => {
+    setSpeechRate(rate);
+    setAnchorEl(null);
 
-      // Set initial position and make bubble visible
-      setBubblePosition(startPosition);
-      setBubbleVisible(true);
+    if (isReading) {
+      speechCanceledRef.current = true;
+      speechSynthesisRef.current.cancel();
+      speechCanceledRef.current = false;
+      readChapter(currentVerseIndex);
+    }
+  };
 
-      // Allow the DOM to update
-      requestAnimationFrame(() => {
-        // Add transition
-        setBubbleTransition('left 1s linear');
+  // Handle voice menu
+  const handleVoiceClick = (event: React.MouseEvent<HTMLElement>) => {
+    setVoiceAnchorEl(event.currentTarget);
+  };
 
-        // Trigger animation by setting the end position
-        setBubblePosition(endPosition);
+  const handleVoiceClose = () => {
+    setVoiceAnchorEl(null);
+  };
 
-        // After animation completes (1s), remove transition and fix the bubble position
-        setTimeout(() => {
-          setBubbleTransition('');
-          // The bubble remains at the end position
-        }, 1000);
-      });
-    }, 500); // 0.5s delay
+  const handleVoiceChange = (voice: SpeechSynthesisVoice) => {
+    setSelectedVoice(voice);
+    setVoiceAnchorEl(null);
 
-    return () => {
-      clearTimeout(timer);
+    if (isReading) {
+      speechCanceledRef.current = true;
+      speechSynthesisRef.current.cancel();
+      speechCanceledRef.current = false;
+      readChapter(currentVerseIndex);
+    }
+  };
+
+  // Handle repeat button
+  const handleRepeatClick = () => {
+    setRepeatCount(repeatCount + 1);
+    if (isReading) {
+      setRemainingRepeats(remainingRepeats + 1);
+    }
+  };
+
+  // Function to read the entire chapter aloud
+  const handleReadChapterAloud = () => {
+    if ('speechSynthesis' in window) {
+      if (isReading) {
+        speechCanceledRef.current = true;
+        speechSynthesisRef.current.cancel();
+        setIsReading(false);
+        setRepeatCount(1);
+        setRemainingRepeats(0);
+        return;
+      }
+
+      speechCanceledRef.current = false;
+      setIsReading(true);
+      setRemainingRepeats(repeatCount);
+      readChapter(currentVerseIndex);
+    } else {
+      alert('Sorry, your browser does not support speech synthesis.');
+    }
+  };
+
+  const readChapter = (startVerseIndex: number) => {
+    readVerse(startVerseIndex);
+  };
+
+  const readVerse = (verseIndex: number) => {
+    // if (isReading == false) return;
+    if (speechCanceledRef.current) return;
+
+    if (verseIndex >= chapterVerses.length) {
+      // End of chapter
+      if (remainingRepeats > 1) {
+        setRemainingRepeats(remainingRepeats - 1);
+        setRepeatCount(repeatCount - 1);
+        readVerse(0);
+      } else {
+        setIsReading(false);
+        setRemainingRepeats(0);
+        setRepeatCount(1);
+      }
+      return;
+    }
+
+    const verse = chapterVerses[verseIndex];
+
+    setCurrentVerseIndex(verseIndex);
+
+    const newVerseNumberUtterance = new SpeechSynthesisUtterance(`Verse ${verse.verse}`);
+    const newVerseContentUtterance = new SpeechSynthesisUtterance(verse.content);
+
+    newVerseContentUtterance.onend = () => {
+      if (speechCanceledRef.current) return;
+      readVerse(verseIndex + 1);
     };
-  }, [currentVerseIndex]);
+
+    newVerseNumberUtterance.onend = () => {
+      if (speechCanceledRef.current) return;
+      speechSynthesisRef.current.speak(newVerseContentUtterance);
+    };
+
+    setVerseNumberUtterance(newVerseNumberUtterance);
+    setVerseContentUtterance(newVerseContentUtterance);
+
+    // Start speaking
+    speechSynthesisRef.current.speak(newVerseNumberUtterance);
+  };
+
+  const exit = () => {
+    speechCanceledRef.current = true;
+    speechSynthesisRef.current.cancel();
+    onExit();
+  };
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Bubble */}
-      {bubbleVisible && (
-        <Box
-          sx={{
-            position: 'fixed',
-            left: bubblePosition.left,
-            top: bubblePosition.top,
-            width: '50px',
-            height: '50px',
-            backgroundColor: bubbleColor,
-            opacity: 0.3,
-            borderRadius: '50%',
-            transform: 'translate(-50%, -50%)',
-            transition: bubbleTransition,
-            zIndex: 2000,
-            pointerEvents: 'none',
-          }}
-        ></Box>
-      )}
-
       {/* Chapter Selection Dropdown */}
       <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel id="chapter-select-label">Select Chapter</InputLabel>
@@ -213,9 +375,7 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
                         selected={index === currentVerseIndex}
                         onClick={() => handleVerseClick(index)}
                       >
-                        <ListItemText
-                          primary={`Verse ${verse.verse}: ${verse.content}`}
-                        />
+                        <ListItemText primary={`Verse ${verse.verse}: ${verse.content}`} />
                       </ListItemButton>
                     </ListItem>
                   ))}
@@ -239,11 +399,9 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
                 <Typography variant="h6" gutterBottom>
                   Questions
                 </Typography>
-                {currentQuestions.map((question, index) => (
+                {currentQuestions.map((question) => (
                   <Box key={question.id} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle1">
-                      Q: {question.question}?
-                    </Typography>
+                    <Typography variant="subtitle1">Q: {question.question}?</Typography>
                     <Typography variant="body2" color="text.secondary">
                       A: {question.answer}
                     </Typography>
@@ -264,48 +422,115 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
                 bottom: 16,
                 right: 16,
                 display: 'flex',
-                flexDirection: 'column',
                 gap: 2,
               }}
             >
-              {/* Show Verse List FAB */}
-              <Fab
-                color="primary"
-                aria-label="Show Verse List"
-                onClick={() => setShowVerseList(!showVerseList)}
-              >
-                <ListIcon />
-              </Fab>
+              {/* Left FABs (Controls) */}
+              {isReading && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                  }}
+                >
+                  {/* Repeat FAB */}
+                  <Fab
+                    color="primary"
+                    aria-label={`Repeat Count: ${repeatCount}`}
+                    onClick={handleRepeatClick}
+                  >
+                    <Badge badgeContent={repeatCount > 1 ? repeatCount : null} color="secondary">
+                      <LoopIcon />
+                    </Badge>
+                  </Fab>
 
-              <Fab
-                color="primary"
-                onClick={handlePreviousVerse}
-                disabled={currentVerseIndex === 0}
+                  {/* Speed Control FAB */}
+                  <Fab color="primary" aria-label="Set Speed" onClick={handleSpeedClick}>
+                    <SpeedIcon />
+                  </Fab>
+                  <Menu anchorEl={anchorEl} open={open} onClose={handleSpeedClose}>
+                    {[1.0, 1.2, 1.5, 1.75, 2.0].map((rate) => (
+                      <MenuItem
+                        key={rate}
+                        selected={speechRate === rate}
+                        onClick={() => handleSpeedChange(rate)}
+                      >
+                        {`${rate}x`}
+                      </MenuItem>
+                    ))}
+                  </Menu>
+
+                  {/* Voice Selection FAB */}
+                  <Fab color="primary" aria-label="Select Voice" onClick={handleVoiceClick}>
+                    <RecordVoiceOverIcon />
+                  </Fab>
+                  <Menu anchorEl={voiceAnchorEl} open={voiceMenuOpen} onClose={handleVoiceClose}>
+                    {voices.map((voice) => (
+                      <MenuItem
+                        key={voice.name}
+                        selected={selectedVoice?.voiceURI === voice.voiceURI}
+                        onClick={() => handleVoiceChange(voice)}
+                      >
+                        {voice.name} ({voice.lang})
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </Box>
+              )}
+
+              {/* Right FABs */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                }}
               >
-                <ArrowBackIcon />
-              </Fab>
-              <Fab
-                color="primary"
-                onClick={handleNextVerse}
-                disabled={currentVerseIndex === chapterVerses.length - 1}
-              >
-                <ArrowForwardIcon />
-              </Fab>
+                {/* Read Chapter Aloud FAB */}
+                <Fab
+                  color={isReading ? 'secondary' : 'primary'}
+                  aria-label={isReading ? 'Stop Reading' : 'Read Chapter Aloud'}
+                  onClick={handleReadChapterAloud}
+                >
+                  <VolumeUpIcon />
+                </Fab>
+
+                {/* Show Verse List FAB */}
+                <Fab
+                  color="primary"
+                  aria-label="Show Verse List"
+                  onClick={() => setShowVerseList(!showVerseList)}
+                >
+                  <ListIcon />
+                </Fab>
+
+                <Fab
+                  color="primary"
+                  onClick={handlePreviousVerse}
+                  disabled={currentVerseIndex === 0}
+                >
+                  <ArrowBackIcon />
+                </Fab>
+                <Fab
+                  color="primary"
+                  onClick={handleNextVerse}
+                  disabled={currentVerseIndex === chapterVerses.length - 1}
+                >
+                  <ArrowForwardIcon />
+                </Fab>
+              </Box>
             </Box>
           </>
         ) : (
-          <Typography variant="body1">
-            No verses available for this chapter.
-          </Typography>
+          <Typography variant="body1">No verses available for this chapter.</Typography>
         )
       ) : (
-        <Typography variant="body1">
-          Please select a chapter to begin learning.
-        </Typography>
+        <Typography variant="body1">Please select a chapter to begin learning.</Typography>
       )}
 
       {/* Exit Button */}
-      <Button variant="outlined" onClick={onExit} sx={{ mt: 2 }}>
+      <Button variant="outlined" onClick={exit} sx={{ mt: 2 }}>
         Exit Learn Mode
       </Button>
     </Box>
