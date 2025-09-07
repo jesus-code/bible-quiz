@@ -9,7 +9,6 @@ import {
   CardContent,
   Box,
   CardActions,
-  Grid,
   LinearProgress,
 } from '@mui/material';
 import { Fab } from '@mui/material';
@@ -17,6 +16,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 
 interface Props {
   user: UserProfile;
@@ -47,16 +47,20 @@ export const Quiz: React.FC<Props> = ({
     totalQuestions: 0,
     longestStreak: 0,
   });
+  const [showHint, setShowHint] = useState(false);
 
   const answerLogged = useRef<boolean>(false);
 
   useEffect(() => {
-    const filtered = questions.filter(
-      (q) =>
-        user.knownChapters.includes(q.chapter) &&
-        user.knownVerses.includes(q.verse)
-    );
-    setFilteredQuestions(filtered);
+    // Get all known questions based on user's book progress
+    const knownQuestions = questions.filter((q) => {
+      const bookProgress = user.bookProgress?.find(bp => bp.book === q.book);
+      if (!bookProgress) return false;
+      
+      return bookProgress.knownChapters.includes(q.chapter) && 
+             bookProgress.knownVerses.includes(q.verse);
+    });
+    setFilteredQuestions(knownQuestions);
   }, [questions, user]);
 
   useEffect(() => {
@@ -80,9 +84,9 @@ export const Quiz: React.FC<Props> = ({
     setIntervalId(id);
   };
 
-  const getVerseText = (chapter: number, verse: number): string | null => {
+  const getVerseText = (book: string, chapter: number, verse: number): string | null => {
     const foundVerse = verses.find(
-      (v) => Number(v.chapter) === chapter && Number(v.verse) === verse
+      (v) => v.book === book && Number(v.chapter) === chapter && Number(v.verse) === verse
     );
     return foundVerse
       ? `${chapter}:${verse} ${foundVerse.content}`
@@ -97,6 +101,7 @@ export const Quiz: React.FC<Props> = ({
     }
     setTimer(20);
     setShowAnswer(false);
+    setShowHint(false);
     const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
     setCurrentQuestion(filteredQuestions[randomIndex]);
     startTimer();
@@ -170,6 +175,10 @@ export const Quiz: React.FC<Props> = ({
     onSessionEnd();
   };
 
+  const handleShowHint = () => {
+    setShowHint(true);
+  };
+
   if (filteredQuestions.length === 0) {
     return (
       <Box sx={{ p: 2, textAlign: 'center' }}>
@@ -208,126 +217,143 @@ export const Quiz: React.FC<Props> = ({
       </Box>
 
       {/* Content */}
-      <Box sx={{ flexGrow: 1, p: 2 }}>
-        <Grid container direction="column" alignItems="center" spacing={4}>
-          {/* Timer */}
-          <Grid item>
-            <Typography variant="h6">Time Left: {timer} seconds</Typography>
-            <LinearProgress
-              variant="determinate"
-              value={(timer / 20) * 100}
-              sx={{ width: 200, mt: 1 }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              {streak > 0 ? `Current Streak: ${streak}` : ' '}
-            </Typography>
-          </Grid>
+      <Box sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Timer */}
+        <Box sx={{ mb: 4, textAlign: 'center' }}>
+          <Typography variant="h6">Time Left: {timer} seconds</Typography>
+          <LinearProgress
+            variant="determinate"
+            value={(timer / 20) * 100}
+            sx={{ width: 200, mt: 1 }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            {streak > 0 ? `Current Streak: ${streak}` : ' '}
+          </Typography>
+        </Box>
 
-          {/* Main Content */}
-          <Grid item xs={12} sm={8} md={6}>
-            <Card
-              sx={{
-                minWidth: 275,
-                boxShadow: 3,
-                borderRadius: 2,
-              }}
-            >
-              <CardContent>
+        {/* Main Content */}
+        <Card
+          sx={{
+            width: '100%',
+            maxWidth: 600,
+            boxShadow: 3,
+            borderRadius: 2,
+          }}
+        >
+          <CardContent>
+            <Typography variant="h5" gutterBottom>
+              {`${currentQuestion.book} ${currentQuestion.chapter}:${currentQuestion.verse} ${currentQuestion.question}`}
+            </Typography>
+            {showHint && !showAnswer && (
+              <Typography variant="body1" sx={{ mt: 2 }}>
+                {getVerseText(
+                  currentQuestion.book,
+                  currentQuestion.chapter,
+                  currentQuestion.verse
+                ) || 'Verse text not found.'}
+              </Typography>
+            )}
+            {showAnswer && (
+              <Box sx={{ mt: 4 }}>
                 <Typography variant="h5" gutterBottom>
-                  {`Luke ${currentQuestion.chapter}:${currentQuestion.verse} ${currentQuestion.question}?`}
+                  Correct Answer: {currentQuestion.answer}
                 </Typography>
-                {showAnswer && (
-                  <Box sx={{ mt: 4 }}>
-                    <Typography variant="h5" gutterBottom>
-                      Correct Answer: {currentQuestion.answer}
-                    </Typography>
-                    <Typography variant="body1" sx={{ mt: 2 }}>
-                      {getVerseText(
-                        currentQuestion.chapter,
-                        currentQuestion.verse
-                      ) || 'Verse text not found.'}
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-              <CardActions
+                <Typography variant="body1" sx={{ mt: 2 }}>
+                  {getVerseText(
+                    currentQuestion.book,
+                    currentQuestion.chapter,
+                    currentQuestion.verse
+                  ) || 'Verse text not found.'}
+                </Typography>
+              </Box>
+            )}
+          </CardContent>
+          <CardActions
+            sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              position: 'relative',
+            }}
+          >
+            {!showAnswer ? (
+              // Show Answer FAB anchored to the bottom-right
+              <Box
                 sx={{
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  position: 'relative',
+                  position: 'fixed',
+                  bottom: 58,
+                  right: 16,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 5,
                 }}
               >
-                {!showAnswer ? (
-                  // Show Answer FAB anchored to the bottom-right
-                  <Box
-                    sx={{
-                      position: 'fixed',
-                      bottom: 58,
-                      right: 16,
-                    }}
+                <Fab
+                  color="secondary"
+                  aria-label="Show Hint"
+                  onClick={handleShowHint}
+                >
+                  <LightbulbIcon />
+                </Fab>
+                <Fab
+                  color="primary"
+                  aria-label="Show Answer"
+                  onClick={() => setShowAnswer(true)}
+                >
+                  <VisibilityIcon />
+                </Fab>
+              </Box>
+            ) : (
+              <>
+                {/* Floating Action Buttons */}
+                <Box
+                  sx={{
+                    position: 'fixed',
+                    bottom: 58,
+                    right: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 5,
+                    zIndex: 1300,
+                  }}
+                >
+                  <Fab
+                    color="primary"
+                    aria-label="Next Question"
+                    onClick={nextQuestion}
                   >
-                    <Fab
-                      color="primary"
-                      aria-label="Show Answer"
-                      onClick={() => setShowAnswer(true)}
-                    >
-                      <VisibilityIcon />
-                    </Fab>
-                  </Box>
-                ) : (
-                  <>
-                    {/* Floating Action Buttons */}
-                    <Box
-                      sx={{
-                        position: 'fixed',
-                        bottom: 58,
-                        right: 16,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 5,
-                        zIndex: 1300,
-                      }}
-                    >
-                      <Fab
-                        color="primary"
-                        aria-label="Next Question"
-                        onClick={nextQuestion}
-                      >
-                        <ArrowForwardIcon />
-                      </Fab>
-                      <Fab
-                        color="error"
-                        aria-label="I Got It Wrong"
-                        onClick={() => handleAnswer(false)}
-                      >
-                        <CloseIcon />
-                      </Fab>
-                      <Fab
-                        color="success"
-                        aria-label="I Got It Right"
-                        onClick={() => handleAnswer(true)}
-                      >
-                        <CheckIcon />
-                      </Fab>
-                    </Box>
+                    <ArrowForwardIcon />
+                  </Fab>
+                  <Fab
+                    color="error"
+                    aria-label="I Got It Wrong"
+                    onClick={() => handleAnswer(false)}
+                  >
+                    <CloseIcon />
+                  </Fab>
+                  <Fab
+                    color="success"
+                    aria-label="I Got It Right"
+                    onClick={() => handleAnswer(true)}
+                  >
+                    <CheckIcon />
+                  </Fab>
+                </Box>
 
-                    {/* Secondary Button */}
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      size="large"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                      onClick={endSession}
-                    >
-                      End Session
-                    </Button>
-                  </>
-                )}
-              </CardActions>
-            </Card>
-          </Grid>
-        </Grid>
+                {/* Secondary Button */}
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  size="large"
+                  fullWidth
+                  sx={{ mt: 2 }}
+                  onClick={endSession}
+                >
+                  End Session
+                </Button>
+              </>
+            )}
+          </CardActions>
+        </Card>
       </Box>
     </Box>
   );

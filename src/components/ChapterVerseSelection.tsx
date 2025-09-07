@@ -1,6 +1,6 @@
-// src/components/ChapterSelection.tsx
+// src/components/ChapterVerseSelection.tsx
 import React, { useState, useEffect } from 'react';
-import { Question, UserProfile } from '../types';
+import { Question, UserProfile, BookProgress } from '../types';
 import {
     Box,
     Button,
@@ -11,10 +11,8 @@ import {
     FormControl,
     InputLabel,
     Grid,
-    //   IconButton,
+    Divider,
 } from '@mui/material';
-// import AddIcon from '@mui/icons-material/Add';
-// import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Props {
     questions: Question[];
@@ -23,107 +21,146 @@ interface Props {
     onComplete: () => void;
 }
 
+interface BookSelection {
+    book: string;
+    selectedChapters: { chapter: number; highestVerse: number }[];
+}
+
 export const ChapterVerseSelection: React.FC<Props> = ({
     questions,
     user,
     onUpdateUser,
     onComplete,
 }) => {
-    const [selectedChapters, setSelectedChapters] = useState<
-        { chapter: number; highestVerse: number }[]
-    >([]);
-
-    const [availableChapters, setAvailableChapters] = useState<number[]>([]);
+    const [bookSelections, setBookSelections] = useState<BookSelection[]>([]);
+    const [availableBooks, setAvailableBooks] = useState<string[]>([]);
+    const [newBookToAdd, setNewBookToAdd] = useState<string>('');
 
     useEffect(() => {
-        // Extract all unique chapters
-        const allChapters = Array.from(new Set(questions.map((q) => q.chapter)));
-        setAvailableChapters(allChapters);
+        // Extract all unique books
+        const allBooks = Array.from(new Set(questions.map((q) => q.book))).sort();
+        setAvailableBooks(allBooks);
 
-        // Initialize selected chapters from user's known chapters
-        const userChapters = user.knownChapters || [];
-        const userVerses = user.knownVerses || [];
+        // Initialize selections from user's book progress
+        const initialSelections: BookSelection[] = [];
+        
+        if (user.bookProgress && user.bookProgress.length > 0) {
+            user.bookProgress.forEach(bp => {
+                const selectedChapters = bp.knownChapters.map(chapter => {
+                    // Find the highest verse the user knows in this chapter
+                    const versesInChapter = questions
+                        .filter(q => q.book === bp.book && q.chapter === chapter)
+                        .map(q => q.verse)
+                        .sort((a, b) => a - b);
 
-        const initialSelections = userChapters.map((chapter) => {
-            // Find the highest verse the user knows in this chapter
-            const versesInChapter = questions
-                .filter((q) => q.chapter === chapter)
-                .map((q) => q.verse);
+                    const highestVerse = bp.knownVerses
+                        .filter(verse => 
+                            questions.some(q => 
+                                q.book === bp.book && 
+                                q.chapter === chapter && 
+                                q.verse === verse
+                            )
+                        )
+                        .sort((a, b) => b - a)[0] || versesInChapter[versesInChapter.length - 1];
 
-            // Assume the user knows up to the highest verse they've selected
-            const highestVerse = userVerses
-                .filter((verse) =>
-                    questions.some(
-                        (q) => q.chapter === chapter && q.verse === verse
-                    )
-                )
-                .sort((a, b) => b - a)[0];
+                    return { chapter, highestVerse };
+                });
 
-            return {
-                chapter,
-                highestVerse: highestVerse || versesInChapter[versesInChapter.length - 1],
-            };
-        });
+                initialSelections.push({
+                    book: bp.book,
+                    selectedChapters
+                });
+            });
+        }
 
-        setSelectedChapters(initialSelections);
+        setBookSelections(initialSelections);
     }, [questions, user]);
 
-    const handleAddChapter = () => {
-        setSelectedChapters([...selectedChapters, { chapter: 0, highestVerse: 0 }]);
+    const handleAddBook = () => {
+        if (newBookToAdd && !bookSelections.some(bs => bs.book === newBookToAdd)) {
+            setBookSelections([...bookSelections, { 
+                book: newBookToAdd, 
+                selectedChapters: [] 
+            }]);
+            setNewBookToAdd('');
+        }
     };
 
-    const handleChapterChange = (index: number, chapter: number) => {
-        const updatedSelections = [...selectedChapters];
-        updatedSelections[index].chapter = chapter;
-        updatedSelections[index].highestVerse = 0;
+    const handleRemoveBook = (bookIndex: number) => {
+        const updatedSelections = [...bookSelections];
+        updatedSelections.splice(bookIndex, 1);
+        setBookSelections(updatedSelections);
+    };
 
-        // Remove any other entries with the same chapter to prevent duplicates
-        const uniqueSelections = updatedSelections.filter(
-            (selection, idx) =>
-                selection.chapter !== 0 &&
-                updatedSelections.findIndex((s) => s.chapter === selection.chapter) === idx
+    const handleAddChapterToBook = (bookIndex: number) => {
+        const updatedSelections = [...bookSelections];
+        const availableChapters = Array.from(new Set(
+            questions
+                .filter(q => q.book === updatedSelections[bookIndex].book)
+                .map(q => q.chapter)
+        )).sort((a, b) => a - b);
+
+        const availableChapter = availableChapters.find(chapter =>
+            !updatedSelections[bookIndex].selectedChapters.some(sc => sc.chapter === chapter)
         );
 
-        setSelectedChapters(uniqueSelections);
+        if (availableChapter) {
+            updatedSelections[bookIndex].selectedChapters.push({
+                chapter: availableChapter,
+                highestVerse: 1
+            });
+            setBookSelections(updatedSelections);
+        }
     };
 
-    const handleHighestVerseChange = (index: number, highestVerse: number) => {
-        const updatedSelections = [...selectedChapters];
-        updatedSelections[index].highestVerse = highestVerse;
-        setSelectedChapters(updatedSelections);
+    const handleChapterChange = (bookIndex: number, chapterIndex: number, chapter: number) => {
+        const updatedSelections = [...bookSelections];
+        updatedSelections[bookIndex].selectedChapters[chapterIndex].chapter = chapter;
+        updatedSelections[bookIndex].selectedChapters[chapterIndex].highestVerse = 1;
+        setBookSelections(updatedSelections);
     };
 
-    const handleRemoveChapter = (index: number) => {
-        const updatedSelections = [...selectedChapters];
-        updatedSelections.splice(index, 1);
-        setSelectedChapters(updatedSelections);
+    const handleHighestVerseChange = (bookIndex: number, chapterIndex: number, highestVerse: number) => {
+        const updatedSelections = [...bookSelections];
+        updatedSelections[bookIndex].selectedChapters[chapterIndex].highestVerse = highestVerse;
+        setBookSelections(updatedSelections);
+    };
+
+    const handleRemoveChapter = (bookIndex: number, chapterIndex: number) => {
+        const updatedSelections = [...bookSelections];
+        updatedSelections[bookIndex].selectedChapters.splice(chapterIndex, 1);
+        setBookSelections(updatedSelections);
     };
 
     const saveSelections = () => {
-        const knownChapters = selectedChapters.map((selection) => selection.chapter);
-        const knownVerses: number[] = [];
+        const bookProgress: BookProgress[] = bookSelections.map(bookSelection => {
+            const knownChapters = bookSelection.selectedChapters.map(sc => sc.chapter);
+            const knownVerses: number[] = [];
 
-        // For each selected chapter, add all verses up to the highest known verse
-        selectedChapters.forEach((selection) => {
-            const versesInChapter = questions
-                .filter((q) => q.chapter === selection.chapter)
-                .map((q) => q.verse)
-                .sort((a, b) => a - b);
+            // For each selected chapter, add all verses up to the highest known verse
+            bookSelection.selectedChapters.forEach(sc => {
+                const versesInChapter = questions
+                    .filter(q => q.book === bookSelection.book && q.chapter === sc.chapter)
+                    .map(q => q.verse)
+                    .sort((a, b) => a - b);
 
-            const highestVerseIndex = versesInChapter.findIndex(
-                (v) => v === selection.highestVerse
-            );
+                const highestVerseIndex = versesInChapter.findIndex(v => v === sc.highestVerse);
+                if (highestVerseIndex !== -1) {
+                    const versesToAdd = versesInChapter.slice(0, highestVerseIndex + 1);
+                    knownVerses.push(...versesToAdd);
+                }
+            });
 
-            if (highestVerseIndex !== -1) {
-                const versesToAdd = versesInChapter.slice(0, highestVerseIndex + 1);
-                knownVerses.push(...versesToAdd);
-            }
+            return {
+                book: bookSelection.book,
+                knownChapters,
+                knownVerses
+            };
         });
 
         const updatedUser = {
             ...user,
-            knownChapters,
-            knownVerses,
+            bookProgress,
         };
         onUpdateUser(updatedUser);
         onComplete();
@@ -141,113 +178,226 @@ export const ChapterVerseSelection: React.FC<Props> = ({
             }}
         >
             <Typography variant="h4" align="center" gutterBottom>
-                Select Known Chapters and Verses
+                Select Known Books, Chapters, and Verses
             </Typography>
             <Typography variant="subtitle1" align="center" color="text.secondary">
-                Add chapters you know and select the highest verse known in each.
+                Add books you know, then select chapters and the highest verse known in each.
             </Typography>
 
-            {/* Chapters List */}
+            {/* Books List */}
             <Paper
                 elevation={3}
                 sx={{
                     width: '100%',
-                    maxWidth: 600,
+                    maxWidth: 800,
                     mt: 4,
                     p: 2,
                 }}
             >
-                <Grid container direction="column" spacing={2}>
-                    {selectedChapters.map((selection, index) => (
-                        <Grid
-                            item
-                            container
-                            spacing={2}
-                            alignItems="center"
-                            key={index}
+                {bookSelections.map((bookSelection, bookIndex) => (
+                    <Box key={bookIndex} sx={{ mb: 4 }}>
+                        {/* Book Header */}
+                        <Paper 
+                            elevation={1} 
+                            sx={{ 
+                                p: 2, 
+                                mb: 2, 
+                                backgroundColor: 'primary.main', 
+                                color: 'primary.contrastText',
+                                display: 'flex', 
+                                alignItems: 'center',
+                                borderRadius: 1
+                            }}
                         >
-                            {/* Chapter Selection */}
-                            <Grid item xs={12} sm={5}>
-                                <FormControl fullWidth variant="outlined">
-                                    <InputLabel>Chapter</InputLabel>
-                                    <Select
-                                        label="Chapter"
-                                        value={selection.chapter}
-                                        onChange={(e) =>
-                                            handleChapterChange(index, e.target.value as number)
-                                        }
-                                    >
-                                        {availableChapters
-                                            .filter(
-                                                (chapter) =>
-                                                    !selectedChapters.some(
-                                                        (sel) => sel.chapter === chapter
-                                                    ) || selection.chapter === chapter
-                                            )
-                                            .map((chapter) => (
-                                                <MenuItem value={chapter} key={chapter}>
-                                                    Chapter {chapter}
-                                                </MenuItem>
-                                            ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
+                            <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+                                📖 {bookSelection.book}
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => handleRemoveBook(bookIndex)}
+                                sx={{ 
+                                    color: 'primary.contrastText', 
+                                    borderColor: 'primary.contrastText',
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }}
+                            >
+                                Remove Book
+                            </Button>
+                        </Paper>
 
-                            {/* Highest Verse Selection */}
-                            <Grid item xs={12} sm={5}>
-                                <FormControl fullWidth variant="outlined" disabled={!selection.chapter}>
-                                    <InputLabel>Highest Verse Known</InputLabel>
-                                    <Select
-                                        label="Highest Verse Known"
-                                        value={selection.highestVerse}
-                                        onChange={(e) =>
-                                            handleHighestVerseChange(index, e.target.value as number)
-                                        }
-                                    >
-                                        {selection.chapter &&
-                                            Array.from(
-                                                new Set(
-                                                    questions
-                                                        .filter((q) => q.chapter === selection.chapter)
-                                                        .map((q) => q.verse)
-                                                )
-                                            )
-                                                .sort((a, b) => a - b)
-                                                .map((verse) => (
-                                                    <MenuItem value={verse} key={verse}>
-                                                        Verse {verse}
-                                                    </MenuItem>
-                                                ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
+                        {/* Chapters for this book */}
+                        <Box sx={{ pl: 2, pr: 1 }}>
+                            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'text.secondary' }}>
+                                Chapters & Verses:
+                            </Typography>
+                            <Grid container direction="column" spacing={2}>
+                            {bookSelection.selectedChapters.map((chapterSelection, chapterIndex) => {
+                                const availableChapters = Array.from(new Set(
+                                    questions
+                                        .filter(q => q.book === bookSelection.book)
+                                        .map(q => q.chapter)
+                                )).sort((a, b) => a - b);
 
-                            {/* Remove Chapter Button */}
-                            <Grid item xs={12} sm={2}>
+                                return (
+                                    <Grid
+                                        item
+                                        container
+                                        spacing={2}
+                                        alignItems="center"
+                                        key={chapterIndex}
+                                    >
+                                        {/* Chapter Selection */}
+                                        <Grid item xs={12} sm={4}>
+                                            <FormControl fullWidth variant="outlined">
+                                                <InputLabel>Chapter</InputLabel>
+                                                <Select
+                                                    label="Chapter"
+                                                    value={chapterSelection.chapter}
+                                                    onChange={(e) =>
+                                                        handleChapterChange(bookIndex, chapterIndex, e.target.value as number)
+                                                    }
+                                                >
+                                                    {availableChapters
+                                                        .filter(chapter =>
+                                                            !bookSelection.selectedChapters.some(
+                                                                (sc, idx) => sc.chapter === chapter && idx !== chapterIndex
+                                                            )
+                                                        )
+                                                        .map(chapter => (
+                                                            <MenuItem value={chapter} key={chapter}>
+                                                                Chapter {chapter}
+                                                            </MenuItem>
+                                                        ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        {/* Highest Verse Selection */}
+                                        <Grid item xs={12} sm={4}>
+                                            <FormControl fullWidth variant="outlined" disabled={!chapterSelection.chapter}>
+                                                <InputLabel>Highest Verse Known</InputLabel>
+                                                <Select
+                                                    label="Highest Verse Known"
+                                                    value={chapterSelection.highestVerse}
+                                                    onChange={(e) =>
+                                                        handleHighestVerseChange(bookIndex, chapterIndex, e.target.value as number)
+                                                    }
+                                                >
+                                                    {chapterSelection.chapter &&
+                                                        Array.from(
+                                                            new Set(
+                                                                questions
+                                                                    .filter(q => q.book === bookSelection.book && q.chapter === chapterSelection.chapter)
+                                                                    .map(q => q.verse)
+                                                            )
+                                                        )
+                                                            .sort((a, b) => a - b)
+                                                            .map(verse => (
+                                                                <MenuItem value={verse} key={verse}>
+                                                                    Verse {verse}
+                                                                </MenuItem>
+                                                            ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        {/* Remove Chapter Button */}
+                                        <Grid item xs={12} sm={4}>
+                                            <Button
+                                                variant="outlined"
+                                                color="error"
+                                                onClick={() => handleRemoveChapter(bookIndex, chapterIndex)}
+                                            >
+                                                Remove Chapter
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                );
+                            })}
+
+                            {/* Add Chapter Button */}
+                            <Grid item>
                                 <Button
                                     variant="outlined"
-                                    color="error"
-                                    onClick={() => handleRemoveChapter(index)}
+                                    onClick={() => handleAddChapterToBook(bookIndex)}
+                                    disabled={
+                                        bookSelection.selectedChapters.length >= 
+                                        Array.from(new Set(
+                                            questions
+                                                .filter(q => q.book === bookSelection.book)
+                                                .map(q => q.chapter)
+                                        )).length
+                                    }
                                 >
-                                    Delete
+                                    Add Chapter to {bookSelection.book}
                                 </Button>
                             </Grid>
                         </Grid>
-                    ))}
+                        </Box>
 
-                    {/* Add Chapter Button */}
-                    <Grid item>
-                        <Button
-                            variant="outlined"
-                            onClick={handleAddChapter}
-                            disabled={
-                                selectedChapters.length >= availableChapters.length
-                            }
-                        >
-                            Add Chapter
-                        </Button>
+                        {bookIndex < bookSelections.length - 1 && <Divider sx={{ mt: 3 }} />}
+                    </Box>
+                ))}
+
+                {/* Add Book Section */}
+                <Box sx={{ mt: 2 }}>
+                    <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={8}>
+                            <FormControl fullWidth variant="outlined">
+                                <InputLabel>Select Book to Add</InputLabel>
+                                <Select
+                                    label="Select Book to Add"
+                                    value={newBookToAdd}
+                                    onChange={(e) => setNewBookToAdd(e.target.value as string)}
+                                >
+                                    {availableBooks
+                                        .filter(book => !bookSelections.some(bs => bs.book === book))
+                                        .sort((a, b) => {
+                                            // Custom order array
+                                            const customOrder = [
+                                                "1 Corinthians",
+                                                "2 Corinthians",
+                                                "1 John",
+                                                "2 John",
+                                                "3 John",
+                                                "Jude",
+                                                "John"
+                                            ];
+                                            const indexA = customOrder.indexOf(a);
+                                            const indexB = customOrder.indexOf(b);
+
+                                            // If both are in customOrder, sort by their index
+                                            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                                            // If only a is in customOrder, it comes first
+                                            if (indexA !== -1) return -1;
+                                            // If only b is in customOrder, it comes first
+                                            if (indexB !== -1) return 1;
+                                            // Otherwise, sort alphabetically
+                                            return a.localeCompare(b);
+                                        })
+                                        .map(book => (
+                                            <MenuItem value={book} key={book}>
+                                                {book}
+                                            </MenuItem>
+                                        ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <Button
+                                variant="outlined"
+                                onClick={handleAddBook}
+                                disabled={!newBookToAdd || bookSelections.length >= availableBooks.length}
+                                fullWidth
+                            >
+                                Add Book
+                            </Button>
+                        </Grid>
                     </Grid>
-                </Grid>
+                </Box>
             </Paper>
 
             {/* Save Button */}
@@ -257,9 +407,10 @@ export const ChapterVerseSelection: React.FC<Props> = ({
                     size="large"
                     onClick={saveSelections}
                     disabled={
-                        selectedChapters.length === 0 ||
-                        selectedChapters.some(
-                            (selection) => !selection.chapter || !selection.highestVerse
+                        bookSelections.length === 0 ||
+                        bookSelections.some(bs => 
+                            bs.selectedChapters.length === 0 ||
+                            bs.selectedChapters.some(sc => !sc.chapter || !sc.highestVerse)
                         )
                     }
                 >

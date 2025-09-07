@@ -5,13 +5,13 @@ import { ParseResult } from 'papaparse';
 import { Question, Verse } from './types';
 
 export const loadQuestions = async (): Promise<Question[]> => {
-  const response = await fetch(`${process.env.PUBLIC_URL}/questions.csv`);
+  const response = await fetch(`${process.env.PUBLIC_URL}/questions2025.csv`);
   const csvData = await response.text();
 
   return new Promise((resolve, reject) => {
     Papa.parse<Question>(csvData, {
       header: true,
-      delimiter: ',',
+      delimiter: '~',
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: (results: ParseResult<Question>) => {
@@ -29,9 +29,11 @@ export const loadQuestions = async (): Promise<Question[]> => {
 
 export const loadVerses = (): Promise<Verse[]> => {
   return new Promise((resolve, reject) => {
-    Papa.parse(`${process.env.PUBLIC_URL}/verses.csv`, {
+    Papa.parse(`${process.env.PUBLIC_URL}/verses2025.csv`, {
       download: true,
       header: true,
+      delimiter: '~',
+      skipEmptyLines: true,
       complete: (results) => {
         const verses = results.data as Verse[];
         resolve(verses);

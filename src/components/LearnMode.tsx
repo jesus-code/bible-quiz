@@ -36,6 +36,7 @@ interface Props {
 
 export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
   
+  const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [currentVerseIndex, setCurrentVerseIndex] = useState(0);
   const [verseNumberUtterance, setVerseNumberUtterance] = useState<SpeechSynthesisUtterance | null>(null);
@@ -125,6 +126,12 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
     localStorage.setItem('speechRate', speechRate.toString());
   }, [speechRate]);
 
+  const handleSelectBook = (book: string) => {
+    setSelectedBook(book);
+    setSelectedChapter(null);
+    setCurrentVerseIndex(0);
+  };
+
   const handleSelectChapter = (chapter: number) => {
     setSelectedChapter(chapter);
     setCurrentVerseIndex(0);
@@ -179,15 +186,20 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
     }
   }, [currentVerseIndex]);
 
-  // Get available chapters
-  const availableChapters = Array.from(new Set<number>(verses.map((v) => v.chapter))).sort(
-    (a, b) => a - b
-  );
+  // Get available books
+  const availableBooks = Array.from(new Set<string>(verses.map((v) => v.book))).sort();
 
-  // Filter verses for the selected chapter
+  // Get available chapters for the selected book
+  const availableChapters = selectedBook
+    ? Array.from(new Set<number>(
+        verses.filter(v => v.book === selectedBook).map((v) => v.chapter)
+      )).sort((a, b) => a - b)
+    : [];
+
+  // Filter verses for the selected book and chapter
   const chapterVerses =
-    selectedChapter !== null
-      ? verses.filter((v) => Number(v.chapter) === selectedChapter)
+    selectedBook && selectedChapter !== null
+      ? verses.filter((v) => v.book === selectedBook && Number(v.chapter) === selectedChapter)
       : [];
 
   const currentVerse = chapterVerses[currentVerseIndex];
@@ -195,6 +207,7 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
   const currentQuestions = currentVerse
     ? questions.filter(
         (q) =>
+          q.book === currentVerse.book &&
           Number(q.chapter) === Number(currentVerse.chapter) &&
           Number(q.verse) === Number(currentVerse.verse)
       )
@@ -325,8 +338,26 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Chapter Selection Dropdown */}
+      {/* Book Selection Dropdown */}
       <FormControl fullWidth sx={{ mb: 2 }}>
+        <InputLabel id="book-select-label">Select Book</InputLabel>
+        <Select
+          labelId="book-select-label"
+          id="book-select"
+          value={selectedBook ?? ''}
+          label="Select Book"
+          onChange={(e) => handleSelectBook(e.target.value as string)}
+        >
+          {availableBooks.map((book) => (
+            <MenuItem key={book} value={book}>
+              {book}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Chapter Selection Dropdown */}
+      <FormControl fullWidth sx={{ mb: 2 }} disabled={!selectedBook}>
         <InputLabel id="chapter-select-label">Select Chapter</InputLabel>
         <Select
           labelId="chapter-select-label"
@@ -343,7 +374,7 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
         </Select>
       </FormControl>
 
-      {selectedChapter !== null ? (
+      {selectedBook && selectedChapter !== null ? (
         chapterVerses.length > 0 ? (
           <>
             {/* Verse List */}
@@ -387,7 +418,7 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
             {currentVerse && (
               <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
                 <Typography variant="h6" gutterBottom>
-                  {`Luke ${currentVerse.chapter}:${currentVerse.verse}`}
+                  {`${currentVerse.book} ${currentVerse.chapter}:${currentVerse.verse}`}
                 </Typography>
                 <Typography variant="body1">{currentVerse.content}</Typography>
               </Paper>
@@ -526,7 +557,9 @@ export const LearnMode: React.FC<Props> = ({ verses, questions, onExit }) => {
           <Typography variant="body1">No verses available for this chapter.</Typography>
         )
       ) : (
-        <Typography variant="body1">Please select a chapter to begin learning.</Typography>
+        <Typography variant="body1">
+          Please select a book and chapter to begin learning.
+        </Typography>
       )}
 
       {/* Exit Button */}

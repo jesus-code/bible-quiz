@@ -14,7 +14,7 @@ import { Leaderboard } from './components/Leaderboard';
 import { LearnMode } from './components/LearnMode';
 import { ModeSelection } from './components/ModeSelection';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import { Box, CssBaseline } from '@mui/material';
 import { theme } from './theme';
 
 const App: React.FC = () => {
@@ -32,9 +32,19 @@ const App: React.FC = () => {
       setQuestions(qs);
     };
 
+    // Clear any existing user profiles since we're starting fresh for the new season
+    // Uncomment the line below if you want to clear all existing data
+    // localStorage.removeItem('userProfiles');
+
     fetchQuestions();
     const profiles = loadFromLocalStorage('userProfiles') || [];
-    setUserProfiles(profiles);
+    
+    // Filter out any profiles that don't have the new bookProgress structure
+    const validProfiles = profiles.filter((profile: UserProfile) => 
+      profile.bookProgress !== undefined
+    );
+    
+    setUserProfiles(validProfiles);
   }, []);
 
   useEffect(() => {
@@ -99,7 +109,10 @@ const App: React.FC = () => {
           setUserProfiles={setUserProfiles}
         />
       ) : !mode ? (
-        <ModeSelection onSelectMode={handleModeSelection} onLogout={handleLogout} />
+        <>
+          <ModeSelection onSelectMode={handleModeSelection} onLogout={handleLogout} />
+          <Leaderboard user={currentUser} onRestart={handleRestart} />
+          </>
       ) : mode === 'quiz' && showChapterVerseSelection ? (
         <ChapterVerseSelection
           questions={questions}

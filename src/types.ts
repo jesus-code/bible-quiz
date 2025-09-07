@@ -1,5 +1,6 @@
 // src/types.ts
 export interface Question {
+  book: string;
   verse: number;
   chapter: number;
   id: string;
@@ -8,15 +9,21 @@ export interface Question {
 }
 
 export interface Verse {
+  book: string;
   verse: number;
   chapter: number;
   content: string;
 }
 
-export interface UserProfile {
-  knownVerses: number[];
-  name: string;
+export interface BookProgress {
+  book: string;
   knownChapters: number[];
+  knownVerses: number[];
+}
+
+export interface UserProfile {
+  name: string;
+  bookProgress: BookProgress[];
   stats: SessionStats[];
 }
 

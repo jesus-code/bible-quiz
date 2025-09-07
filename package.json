@@ -15,6 +15,7 @@
     "@types/node": "^16.18.112",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
+    "canvas-confetti": "^1.9.3",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -49,7 +50,7 @@
     ]
   },
   "devDependencies": {
-    "@types/canvas-confetti": "^1.6.4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/papaparse": "^5.3.14"
   }
 }

@@ -30,8 +30,7 @@ export const SelectProfile: React.FC<Props> = ({
     if (newUserName.trim() !== '') {
       const newUser: UserProfile = {
         name: newUserName.trim(),
-        knownChapters: [],
-        knownVerses: [],
+        bookProgress: [],
         stats: [],
       };
       setUserProfiles([...userProfiles, newUser]);
